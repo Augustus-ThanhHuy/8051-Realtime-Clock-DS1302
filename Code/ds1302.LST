@@ -1,0 +1,140 @@
+C51 COMPILER V9.60.0.0   DS1302                                                            12/13/2023 12:40:20 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE DS1302
+OBJECT MODULE PLACED IN ds1302.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE ds1302.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "ds1302.h"
+   2          
+   3          uchar TIME[3] = {0, 0, 0x12};
+   4          
+   5          /*******************************************************************************
+   6          * Ham           : Ds1302Write
+   7          * Chuc nang      : Gui lenh va du lieu toi DS1302 (Dia chi + Du lieu)
+   8          * Tham so dau vao : addr, dat
+   9          * Tham so dau ra  : Khong
+  10          *******************************************************************************/
+  11          
+  12          void Ds1302Write(uchar addr, uchar dat)
+  13          {    
+  14   1        uchar n;
+  15   1      
+  16   1          EA = 0;
+  17   1        RST = 0;
+  18   1        _nop_();
+  19   1      
+  20   1        SCLK = 0;  // Dat SCLK ve muc thap
+  21   1        _nop_();
+  22   1        RST = 1;  // Sau do dat RST(CE) ve muc cao
+  23   1        _nop_();
+  24   1      
+  25   1        for (n = 0; n < 8; n++)  // Bat dau gui dia chi lenh tu bit thap nhat
+  26   1        {
+  27   2          DSIO = addr & 0x01;
+  28   2          addr >>= 1;
+  29   2          SCLK = 1;
+  30   2          _nop_();
+  31   2          SCLK = 0;
+  32   2          _nop_();
+  33   2        }
+  34   1        for (n = 0; n < 8; n++)  // Gui 8 bit du lieu
+  35   1        {
+  36   2          DSIO = dat & 0x01;
+  37   2          dat >>= 1;
+  38   2          SCLK = 1;
+  39   2          _nop_();
+  40   2          SCLK = 0;
+  41   2          _nop_();  
+  42   2        } 
+  43   1           
+  44   1        RST = 0;  // Ket thuc viec gui du lieu
+  45   1        _nop_();
+  46   1          EA = 1;
+  47   1      }
+  48          
+  49          /*******************************************************************************
+  50          * Ham           : Ds1302Read
+  51          * Chuc nang      : Doc du lieu tu mot dia chi cu the cua DS1302
+  52          * Tham so dau vao : addr
+  53          * Tham so dau ra  : dat
+  54          *******************************************************************************/
+  55          
+C51 COMPILER V9.60.0.0   DS1302                                                            12/13/2023 12:40:20 PAGE 2   
+
+  56          uchar Ds1302Read(uchar addr)
+  57          {   
+  58   1          uchar n, dat, dat1;
+  59   1          
+  60   1          EA = 0;
+  61   1        RST = 0;
+  62   1        _nop_();
+  63   1      
+  64   1        SCLK = 0;
+  65   1        _nop_();
+  66   1        RST = 1;
+  67   1        _nop_();
+  68   1      
+  69   1        for (n = 0; n < 8; n++)  // Bat dau gui dia chi lenh tu bit thap nhat
+  70   1        {
+  71   2          DSIO = addr & 0x01;
+  72   2          addr >>= 1;
+  73   2          SCLK = 1;
+  74   2          _nop_();
+  75   2          SCLK = 0;
+  76   2          _nop_();
+  77   2        }
+  78   1        _nop_();
+  79   1        for (n = 0; n < 8; n++)  // Doc 8 bit du lieu
+  80   1        {
+  81   2          dat1 = DSIO;
+  82   2          dat = (dat >> 1) | (dat1 << 7);
+  83   2          SCLK = 1;
+  84   2          _nop_();
+  85   2          SCLK = 0;
+  86   2          _nop_();
+  87   2        }
+  88   1      
+  89   1        RST = 0;
+  90   1        _nop_();
+  91   1        SCLK = 1;
+  92   1        _nop_();
+  93   1        DSIO = 0;
+  94   1        _nop_();
+  95   1        DSIO = 1;
+  96   1        _nop_();
+  97   1          EA = 1;
+  98   1        return dat; 
+  99   1      }
+ 100          
+ 101          /*******************************************************************************
+ 102          * Ham           : Ds1302ReadTime
+ 103          * Chuc nang      : Doc thoi gian tu DS1302
+ 104          * Tham so dau vao : Khong
+ 105          * Tham so dau ra  : Khong
+ 106          *******************************************************************************/
+ 107          
+ 108          void Ds1302ReadTime()
+ 109          {
+ 110   1        TIME[0] = Ds1302Read(0x81);
+ 111   1        TIME[1] = Ds1302Read(0x83);
+ 112   1        TIME[2] = Ds1302Read(0x85);
+ 113   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    193    ----
+C51 COMPILER V9.60.0.0   DS1302                                                            12/13/2023 12:40:20 PAGE 3   
+
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      3    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

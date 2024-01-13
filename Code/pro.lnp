@@ -1,0 +1,6 @@
+"STARTUP.obj",
+"main.obj",
+"temp.obj",
+"ds1302.obj",
+"buzzer.obj" 
+TO "pro" 

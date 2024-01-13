@@ -1,0 +1,104 @@
+C51 COMPILER V9.60.0.0   BUZZER                                                            12/13/2023 12:40:20 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE BUZZER
+OBJECT MODULE PLACED IN buzzer.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE buzzer.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include<reg52.h>
+   2          #include "buzzer.h"
+   3          sbit melody = P2^5;
+   4          //Dinh nghia cac not nhac
+   5          #define pitch_A5  64968
+   6          #define pitch_C6  65058
+   7          #define pitch_D6  65110
+   8          #define pitch_Eb6 65134
+   9          #define pitch_E6  65157
+  10          #define pitch_F6  65178
+  11          
+  12          #define MelodyPin melody
+  13          
+  14          //Bien luu gia tri thoi gian cho cac loai nhip am nhac
+  15          unsigned int qtrN, eighthN;
+  16          
+  17          //Ham tinh thoi gian cho moi nhip dua tren thoi gian Tempo
+  18          void MelodyTempo(int Tempo){
+  19   1        qtrN = ((60000/Tempo));
+  20   1        eighthN = (qtrN/2);
+  21   1      }
+  22          
+  23          //Ham PlayNote duoc su dung de choi mot not nhac voi tan so duoc xac dinh boi 'PitchH' va 'PitchL;'
+  24          void PlayNote(const unsigned char PitchH, const unsigned char PitchL){
+  25   1        RCAP2H = PitchH;
+  26   1        RCAP2L = PitchL;
+  27   1        TH2 = PitchH;
+  28   1        TL2 = PitchL;
+  29   1        TF2 = 0;
+  30   1        TR2 = 1;
+  31   1        ET2 = 1;
+  32   1        EA = 1;
+  33   1      }
+  34          // Dung de ket thuc 
+  35          void EndNote(void){
+  36   1        ET2 = 0;
+  37   1        TR2 = 0;
+  38   1        TF2 = 0;
+  39   1        MelodyPin = 1;
+  40   1      }
+  41          
+  42          void delay_ms(unsigned int ms){
+  43   1        int i;
+  44   1        for(;ms>0;ms--)
+  45   1          for(i = 0; i < 123;i++){}
+  46   1      }
+  47          
+  48          //Ham nay choi mot not nhac voi tan so 'Pitch' va do tre giua cac not nhac la 'interval'
+  49          void Melodyplay(const int Pitch, unsigned int interval){
+  50   1        if(Pitch!=0)
+  51   1          PlayNote(Pitch >> 8, Pitch);
+  52   1        delay_ms(interval);
+  53   1        EndNote();
+  54   1      }
+  55          //Ham nay dinh nghia mot doan nhac su dung cac not nhac duoc dinh nghia truoc
+C51 COMPILER V9.60.0.0   BUZZER                                                            12/13/2023 12:40:20 PAGE 2   
+
+  56          //voi thoi gian tempo va do tre giua cac not nhac da duoc xac dinh
+  57          void LooneyToons(){ //d=4,o=5,b=140
+  58   1        MelodyTempo(140);
+  59   1        Melodyplay(pitch_C6, qtrN); //c6
+  60   1        Melodyplay(pitch_F6, eighthN); //8f6
+  61   1        Melodyplay(pitch_E6, eighthN); //8e6
+  62   1        Melodyplay(pitch_D6, eighthN); //8d6
+  63   1        Melodyplay(pitch_C6, eighthN); //8c6
+  64   1        Melodyplay(pitch_A5, qtrN); //a.
+  65   1        Melodyplay(pitch_A5, eighthN); //a.
+  66   1        Melodyplay(pitch_C6, eighthN); //8c6
+  67   1        Melodyplay(pitch_F6, eighthN); //8f6
+  68   1        Melodyplay(pitch_E6, eighthN); //8e6
+  69   1        Melodyplay(pitch_D6, eighthN); //8d6
+  70   1        Melodyplay(pitch_Eb6, eighthN); //8d#6
+  71   1        Melodyplay(pitch_E6, qtrN); //e.6
+  72   1        
+  73   1      }
+  74          // ham nay lam thay doi trang thai bien MelodyPin de tao ra am thanh
+  75          void T2ISR(void) interrupt 5 {
+  76   1        MelodyPin = ~MelodyPin;
+  77   1        TF2 = 0;
+  78   1      }
+  79          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    263    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

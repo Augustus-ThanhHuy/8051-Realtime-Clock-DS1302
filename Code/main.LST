@@ -1,0 +1,513 @@
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include<reg52.h>
+   2          #include"ds1302.h"
+   3          #include"buzzer.h"
+   4          #include"temp.h"
+   5          
+   6          
+   7          #define DIG P0
+   8          sbit LSA=P2^2;
+   9          sbit LSB=P2^3;
+  10          sbit LSC=P2^4;
+  11          
+  12          sbit ledhienthi  =P2^0;
+  13          sbit ledbamgio   =P2^1;
+  14          sbit leddemnguoc =P2^6;
+  15          sbit ledbaothuc  = P2^7;
+  16          
+  17          
+  18          sbit batdau = P3^0;
+  19          sbit mode = P3^1;
+  20          
+  21          
+  22          unsigned char code DIG_CODE[11]={0x3f,0x06,0x5b,0x4f,0x66,0x6d,0x7d,0x07,0x7f,0x6f,0x40};
+  23          unsigned char Num=0;
+  24          unsigned char Mode=0;
+  25          unsigned int flag = 0;
+  26          unsigned int x1;
+  27          unsigned int x2;
+  28          unsigned int state = 0;
+  29          unsigned int dcount = 0;
+  30          unsigned int setPlace = 0;
+  31          unsigned int setTime = 0;
+  32          unsigned int disp[8]={0x3f,0x3f,0x3f,0x3f,0x3f,0x3f,0x3f,0x3f};
+  33          
+  34          
+  35          unsigned int gio, phut, giay;
+  36          unsigned int gio1,gio2;
+  37          unsigned int phut1, phut2;
+  38          unsigned int giay1, giay2;
+  39          
+  40          unsigned int luugio, luuphut, luugiay;
+  41          unsigned int hengio, henphut, hengiay;
+  42          unsigned int dembaothuc = 0;
+  43          unsigned int ms = 1;
+  44          
+  45          void chonKey(unsigned int k);
+  46          void hieuchinh();
+  47          void hienthibamgio(unsigned int giay, unsigned int phut, unsigned int gio);
+  48          void LooneyToons();
+  49          void LcdDisplay(int); //Khai bao ham
+  50          void Display();
+  51          void chonKey(unsigned int k);
+  52          void delayMS(unsigned int ms);
+  53          
+  54          
+  55          
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 2   
+
+  56          void btn_setup ()
+  57          {
+  58   1        IT0 = 1;
+  59   1        IT1 = 1;
+  60   1        EA = 1;
+  61   1        EX0 = 1;
+  62   1        EX1 = 1;
+  63   1        ET0 = 1;
+  64   1      }
+  65          
+  66          //Ham nut nhan 
+  67          void btn_check(){
+  68   1        if (batdau == 0)
+  69   1        {
+  70   2            if (x1 == 0)
+  71   2            {
+  72   3                state ++;
+  73   3                if (state >= 2){
+  74   4                  state = 0;
+  75   4                }
+  76   3                x1 = 1;
+  77   3            }
+  78   2         }
+  79   1         else
+  80   1              x1 = 0;
+  81   1         if (mode == 0)
+  82   1        {
+  83   2            if (x2 == 0)
+  84   2            {
+  85   3              state = 0;
+  86   3              gio = phut = giay = 0;
+  87   3              setPlace = 0;
+  88   3              Mode ++;
+  89   3              if (Mode != 4) ms = 10;
+  90   3              if (Mode > 4){
+  91   4                  Mode = 0;
+  92   4              }
+  93   3                x2 = 1;
+  94   3            }
+  95   2         }
+  96   1         else
+  97   1              x2 = 0;
+  98   1      }
+  99          
+ 100          //ham thoi gian thuc
+ 101          void Realtime(){
+ 102   1        //kiem tra co phai la lan su dung dau tien khong
+ 103   1        if (setTime == 0){
+ 104   2          hienthibamgio(giay,phut,gio);
+ 105   2          if (state == 1) setTime = 1;
+ 106   2        }
+ 107   1        else if (setTime == 1) {
+ 108   2          //goi ham khoi tao Ds1302 de set thoi gian thuc cho Ds1302
+ 109   2          Ds1302Init();
+ 110   2          setTime = 2;
+ 111   2        }else{
+ 112   2          unsigned int temp;
+ 113   2          Display();
+ 114   2          Ds1302ReadTime(); //Goi ham doc thoi gian thuc
+ 115   2            //Lay cac gia tri tuong ung giay, phut, gio luu vao mang disp.
+ 116   2          disp[0] = DIG_CODE[TIME[0]&0x0f];//0000.1111
+ 117   2          disp[1] = DIG_CODE[TIME[0]>>4];
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 3   
+
+ 118   2          disp[2] = 0X40;
+ 119   2          disp[3] = DIG_CODE[TIME[1]&0x0f];
+ 120   2          disp[4] = DIG_CODE[TIME[1]>>4];
+ 121   2          disp[5] = 0X40;
+ 122   2          //state la co set 12h/24h, neu state = 0 thi la 24h
+ 123   2          if(state == 0){
+ 124   3            disp[6] = DIG_CODE[TIME[2]&0X0f];
+ 125   3            disp[7] = DIG_CODE[TIME[2]>>4];
+ 126   3          } else {
+ 127   3            if((TIME[2])> 0x12){
+ 128   4              gio1 = TIME[2]&0x0F;
+ 129   4              gio2 = TIME[2] >> 4;
+ 130   4              temp = (gio2*10 + gio1) - 12;
+ 131   4              gio1 = temp % 10;
+ 132   4              gio2 = temp / 10;
+ 133   4              disp[6] = DIG_CODE[gio1];
+ 134   4              disp[7] = DIG_CODE[gio2];
+ 135   4            }
+ 136   3            else{
+ 137   4              disp[6] = DIG_CODE[TIME[2]&0X0f];
+ 138   4              disp[7] = DIG_CODE[TIME[2]>>4];
+ 139   4            }
+ 140   3          }
+ 141   2        }
+ 142   1      }
+ 143          
+ 144          //Ham hien thi dành cho các mode bamgio, demnguoc,  cai dat bao thuc
+ 145          void hienthibamgio(unsigned int giay, unsigned int phut, unsigned int gio){
+ 146   1        int i;
+ 147   1        giay1 = giay%10;
+ 148   1        giay2 = giay/10;
+ 149   1        
+ 150   1        phut1 = phut % 10;
+ 151   1        phut2 = phut / 10;
+ 152   1        
+ 153   1        gio1 = gio%10;
+ 154   1        gio2 = gio/10;
+ 155   1        for(i =0; i < 25;i++){
+ 156   2        chonKey(0);   DIG=DIG_CODE[giay1];
+ 157   2            delayMS(2);
+ 158   2        chonKey(1);   DIG=DIG_CODE[giay2];
+ 159   2            delayMS(2);
+ 160   2        chonKey(2);   DIG=DIG_CODE[10];
+ 161   2            delayMS(2);
+ 162   2        chonKey(3);   DIG=DIG_CODE[phut1];
+ 163   2            delayMS(2);
+ 164   2        chonKey(4);   DIG=DIG_CODE[phut2];
+ 165   2            delayMS(2);
+ 166   2        chonKey(5);   DIG=DIG_CODE[10];
+ 167   2            delayMS(2);
+ 168   2        chonKey(6);   DIG=DIG_CODE[gio1];
+ 169   2            delayMS(2);
+ 170   2        chonKey(7);   DIG=DIG_CODE[gio2];
+ 171   2            delayMS(2);
+ 172   2        }
+ 173   1      }
+ 174          //ham bam gio, khi goi ham bien giay se tu dong dem len
+ 175          void Bamgio(){
+ 176   1        giay ++;
+ 177   1        hienthibamgio(giay, phut, gio);
+ 178   1        if (giay >= 59) {
+ 179   2          giay = 0;
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 4   
+
+ 180   2          phut++;
+ 181   2        }
+ 182   1        if (phut >= 59){
+ 183   2            phut = 0;
+ 184   2            gio++;
+ 185   2        }
+ 186   1      }
+ 187          
+ 188          //ham dem nguoc, khi goi ham bien giay se tu dong giam ve 0, lan luot den phut va gio
+ 189          void DemNguoc()
+ 190          {
+ 191   1          if (giay > 0) {
+ 192   2              giay--;
+ 193   2          } else {
+ 194   2              if (phut > 0) {
+ 195   3                  phut--;
+ 196   3                  giay = 59;
+ 197   3              } else {
+ 198   3                  if (gio > 0) {
+ 199   4                      gio--;
+ 200   4                      phut = 59;
+ 201   4                      giay = 59;
+ 202   4                  } else {
+ 203   4                      state = 0;
+ 204   4                  }
+ 205   3              }
+ 206   2          }
+ 207   1          hienthibamgio(giay, phut, gio);
+ 208   1      }
+ 209          
+ 210          //ham hieu chinh tang so tren dong ho, ung voi cac vi tri giay, phut, gio
+ 211          //ham tang theo 1 chieu dem len, khi giay,phut den 59 se quay ve 0. Va gio den 23 tang tiep se ve 0
+ 212          void hieuchinh()
+ 213          {
+ 214   1        if (setPlace == 0)
+ 215   1        {
+ 216   2          giay++;
+ 217   2          if (giay >= 59 && phut <= 59){
+ 218   3            giay = 0;
+ 219   3            phut++;
+ 220   3          }
+ 221   2        }
+ 222   1        if (setPlace == 1)
+ 223   1        {
+ 224   2          phut++;
+ 225   2          if (phut >= 59 && gio <= 23)
+ 226   2          {
+ 227   3            phut = 0;
+ 228   3            gio++;
+ 229   3          }
+ 230   2        }
+ 231   1        if (setPlace == 2){
+ 232   2          gio++;
+ 233   2          if (gio > 23){
+ 234   3            gio = 0;
+ 235   3          }
+ 236   2        }
+ 237   1      }
+ 238           /*
+ 239          ham ghi gia tri vao Ds1302
+ 240          1. ta se chuyen doi cac gia tri da duoc hieuchinh thanh ma hex
+ 241          2. Mo bao ve, goi ham ghi vao cac gia tri hex da hieuchinh vao dia chi thanh ghi gio, phut, giay
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 5   
+
+ 242          3. Dong bao ve
+ 243          */
+ 244          
+ 245          
+ 246          void Ds1302Init() {
+ 247   1        // Chuyen doi so hex
+ 248   1          int gio_hex = gio / 10 * 16 + gio % 10;     
+ 249   1          int phut_hex = phut / 10 * 16 + phut % 10;  
+ 250   1          int giay_hex = giay / 10 * 16 + giay % 10;  
+ 251   1      
+ 252   1          Ds1302Write(0x8E, 0x00);  // Mo bao ve
+ 253   1          Ds1302Write(0x84, gio_hex);   
+ 254   1          Ds1302Write(0x82, phut_hex);  
+ 255   1          Ds1302Write(0x80, giay_hex);  
+ 256   1          Ds1302Write(0x8E, 0x80);  // Dong bao ve
+ 257   1      }
+ 258          //ham bao thuc
+ 259          /*
+ 260          1. Cac bien hengio, henphut da duoc luu trong ModeBamgio
+ 261          2. Goi ham thoi gian thuc Ds1302ReadTime() de so sang voi cac bien hengio, henphut
+ 262          3. khi khi cac bien thoi gian thuc bang voi bien hen gio thì ráng flag = 1, goi ham phat buzzer 3 lan
+ 263          */
+ 264          void ModeBaoThuc(void)
+ 265          {
+ 266   1        unsigned int m1, m2, h1, h2;
+ 267   1        unsigned int m,h;
+ 268   1        if (Mode == 3)
+ 269   1      {
+ 270   2          hienthibamgio(hengiay,henphut,hengio);
+ 271   2      }
+ 272   1        Ds1302ReadTime();
+ 273   1        m1 = TIME[1]&0x0f;
+ 274   1        m2 = TIME[1]>>4;
+ 275   1        m = m2 * 10 + m1;
+ 276   1        h1 = TIME[2]&0x0F;
+ 277   1        h2 = TIME[2] >> 4;
+ 278   1        h = h2*10 + h1;
+ 279   1        if (m == henphut && h == hengio ) flag = 1;
+ 280   1        else flag = 0;
+ 281   1        if (flag == 1) {
+ 282   2          dembaothuc++;
+ 283   2          LooneyToons();
+ 284   2          if (dembaothuc==3){
+ 285   3          henphut=100;
+ 286   3          dembaothuc=0;
+ 287   3          }
+ 288   2        }
+ 289   1      }
+ 290          //ham ngat INT1 dung de tang bien gio,phut,giay
+ 291          void ISR_INT1 (void) interrupt 2
+ 292          {
+ 293   1        if( Mode == 1){
+ 294   2          giay = 0;
+ 295   2          phut = 0;
+ 296   2          gio = 0;
+ 297   2        }
+ 298   1        else{
+ 299   2          hieuchinh();
+ 300   2        }
+ 301   1      }
+ 302          
+ 303          //ham ngat ngoai INT0 dung de tang vi tri bien gio,phut,giay
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 6   
+
+ 304          void ISR_INT0 (void) interrupt 0
+ 305          {
+ 306   1        if (Mode != 4)
+ 307   1        {
+ 308   2          setPlace ++;
+ 309   2          if (setPlace >= 3){
+ 310   3            setPlace = 0;
+ 311   3          }
+ 312   2        }
+ 313   1      }
+ 314          //Ham luu cac mode
+ 315          void ModeBamGio(){
+ 316   1        hienthibamgio(giay, phut, gio);
+ 317   1        if (state == 1 && Mode == 1){
+ 318   2            Bamgio();
+ 319   2        }
+ 320   1        if (state == 1 && Mode == 2){
+ 321   2            DemNguoc();   
+ 322   2          if (gio == 0 && phut == 0 && giay == 0) flag = 1;
+ 323   2          if (flag == 1)
+ 324   2          {
+ 325   3            LooneyToons();
+ 326   3            flag = 0;
+ 327   3          } 
+ 328   2        }
+ 329   1        if (state == 1 && Mode == 3){
+ 330   2          ModeBaoThuc();
+ 331   2        }
+ 332   1        if (state == 0 && Mode != 0){
+ 333   2          if (Mode == 3){
+ 334   3            hengio = 0;
+ 335   3            henphut = 0;
+ 336   3            hengiay = 0;
+ 337   3              hengio = gio;
+ 338   3              henphut = phut;
+ 339   3              hengiay = giay;
+ 340   3          }
+ 341   2          else{
+ 342   3            luugiay = giay;
+ 343   3            luuphut = phut;
+ 344   3            luugio = gio;
+ 345   3            hienthibamgio(luugiay, luuphut, luugio);
+ 346   3          }
+ 347   2        }
+ 348   1      }
+ 349          
+ 350          
+ 351          void main()
+ 352          {
+ 353   1        
+ 354   1        ledhienthi = 0; //sang
+ 355   1        ledbamgio = 1; //tat
+ 356   1        leddemnguoc = 1;
+ 357   1        ledbaothuc = 1;
+ 358   1        Mode = 0;
+ 359   1        btn_setup ();
+ 360   1        
+ 361   1        gio=0;
+ 362   1        phut= 0;
+ 363   1        giay= 0;
+ 364   1        batdau = 1;
+ 365   1        mode = 1;
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 7   
+
+ 366   1        luugio = 0;
+ 367   1        luuphut = 0;
+ 368   1        luugiay = 0;
+ 369   1        
+ 370   1        while(1)
+ 371   1        { 
+ 372   2          switch(Mode) {
+ 373   3              case 0: ledhienthi =0; ledbamgio = 1; leddemnguoc = 1; ledbaothuc = 1; Realtime(); ModeBaoThuc();
+ 374   3              break;
+ 375   3              case 1: ledhienthi =1; ledbamgio = 0; leddemnguoc = 1; ledbaothuc = 1; ModeBamGio();  
+ 376   3              break;
+ 377   3              case 2: ledhienthi =1; ledbamgio = 1; leddemnguoc = 0; ledbaothuc = 1; ModeBamGio(); 
+ 378   3              break;
+ 379   3              case 3: ledhienthi = 1; ledbamgio = 1; leddemnguoc = 1; ledbaothuc = 0; ModeBamGio(); 
+ 380   3              break;
+ 381   3              case 4: ledhienthi =0; ledbamgio = 1; leddemnguoc = 1; ledbaothuc = 1; LcdDisplay(Ds18b20ReadTemp()); 
+ 382   3              break;
+ 383   3          } 
+ 384   2        }
+ 385   1      }
+ 386          
+ 387          
+ 388          void Display() {
+ 389   1         int i;
+ 390   1         for(i = 0; i < 8; i++) {
+ 391   2              DIG = disp[i];  
+ 392   2              chonKey(i);
+ 393   2              delayMS(1);  
+ 394   2              DIG = 0x00;  
+ 395   2         }
+ 396   1      }
+ 397          //Ham nay dung de tinh toan va hien thi gia tri nhiet do
+ 398          void LcdDisplay(int temp)    
+ 399          {
+ 400   1          
+ 401   1        unsigned char datas[] = {0, 0, 0, 0, 0}; 
+ 402   1        float tp;  
+ 403   1        if(temp< 0) //Neu niet do am    
+ 404   1          {
+ 405   2              disp[7] = 0x40; //Hien thi dau "-"
+ 406   2      
+ 407   2          temp=temp-1;
+ 408   2          temp=~temp;
+ 409   2          tp=temp;
+ 410   2          temp=tp*0.0625*100+0.5; 
+ 411   2          // Tính toan va tra ve gia tri nhiet do
+ 412   2       
+ 413   2          }
+ 414   1        else
+ 415   1          { 
+ 416   2              disp[7] = 0;  // Neu nhiet do duong thì hien thi 0  
+ 417   2          tp=temp;
+ 418   2          temp=tp*0.0625*100+0.5; 
+ 419   2      
+ 420   2        }
+ 421   1          disp[0] = 0x39;
+ 422   1          disp[1] = 0x63;
+ 423   1        //  disp[2] = 0;
+ 424   1          disp[3] = DIG_CODE[temp % 100 / 10];
+ 425   1          disp[2] = DIG_CODE[temp % 10];
+ 426   1          disp[4] = DIG_CODE[temp % 1000 / 100] | 0x80; // Them dau '.' vao gia tri
+ 427   1          disp[5] = DIG_CODE[temp % 10000 / 1000];
+C51 COMPILER V9.60.0.0   MAIN                                                              12/13/2023 12:40:20 PAGE 8   
+
+ 428   1          disp[6] = DIG_CODE[temp / 10000];
+ 429   1          Display(); 
+ 430   1      }
+ 431          
+ 432          void chonKey(unsigned int k){
+ 433   1        switch (k)
+ 434   1          {
+ 435   2          case (0):
+ 436   2              LSC = 0; LSB = 0; LSA = 0; break;
+ 437   2          case (1):
+ 438   2              LSC = 0; LSB = 0; LSA = 1; break;
+ 439   2          case (2):
+ 440   2              LSC = 0; LSB = 1; LSA = 0; break;
+ 441   2          case (3):
+ 442   2              LSC = 0; LSB = 1; LSA = 1; break;        
+ 443   2          case (4):
+ 444   2              LSC = 1; LSB = 0; LSA = 0; break;        
+ 445   2          case (5):
+ 446   2              LSC = 1; LSB = 0; LSA = 1; break;       
+ 447   2          case (6):
+ 448   2              LSC = 1; LSB = 1; LSA = 0; break;       
+ 449   2          case (7):
+ 450   2              LSC = 1; LSB = 1; LSA = 1; break;        
+ 451   2          }
+ 452   1      }
+ 453          
+ 454          void delayMS (unsigned int t)
+ 455          {
+ 456   1        TMOD = 0X01;  // timer 0, mode 1 :16bit
+ 457   1        TH0  = 0XFC;  //8bit trong so cao
+ 458   1        TL0  = 0X18;  //8bit trong do thap
+ 459   1        IE   = 0x87;  // bat ngat
+ 460   1        dcount =0;
+ 461   1        TR0  = 1;     // start timer 0
+ 462   1        //FFFF+1 - FC18 =1ms
+ 463   1        while (dcount < t);
+ 464   1        ET0   = 0;      // tat tat ca ngat
+ 465   1        TR0  =0;      //clear flag
+ 466   1        // khi TF ==1 gan lai gia ri
+ 467   1      }
+ 468          
+ 469          
+ 470          void ISR_timer0() interrupt 1
+ 471          {
+ 472   1        TH0 = 0xFC;
+ 473   1        TL0 = 0x18;
+ 474   1        dcount++;
+ 475   1        btn_check();
+ 476   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2156    ----
+   CONSTANT SIZE    =     16    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     66      27
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

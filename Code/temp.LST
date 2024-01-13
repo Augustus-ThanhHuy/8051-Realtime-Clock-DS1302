@@ -1,0 +1,137 @@
+C51 COMPILER V9.60.0.0   TEMP                                                              12/13/2023 12:40:20 PAGE 1   
+
+
+C51 COMPILER V9.60.0.0, COMPILATION OF MODULE TEMP
+OBJECT MODULE PLACED IN temp.OBJ
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE temp.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include"temp.h"
+   2          
+   3          
+   4          void Delay1ms(unsigned int y)
+   5          {
+   6   1        unsigned int x;
+   7   1        for(y;y>0;y--)
+   8   1          for(x=110;x>0;x--);
+   9   1      }
+  10          
+  11          
+  12          unsigned char Ds18b20Init()
+  13          {
+  14   1        unsigned int i;
+  15   1          EA = 0;
+  16   1        DSPORT=0;      // Gan DSPORT = 0
+  17   1        i=70; 
+  18   1        while(i--);//Vong lap tao do tre tuong duong 70 lan lap
+  19   1        DSPORT=1;     // Gan DSPORT = 1
+  20   1        i=0;          // Gan i = 0
+  21   1        while(DSPORT) //Vong lap kiem tra DSPORT
+  22   1        {
+  23   2          i++;
+  24   2          if(i>5000)//
+  25   2            return 0;//Ham tra ve gia tri 0 khi DSPORT van bang 1
+  26   2        }
+  27   1        return 1;  //Ham tra ve gia tri 1 khi DSPORT bang 0
+  28   1      }
+  29          
+  30          
+  31          
+  32          void Ds18b20WriteByte(unsigned char dat)  //Khai bao ham Ds18b20WriteByte voi nhan mot tham so la dat
+  33          {
+  34   1        unsigned int i,j;
+  35   1          EA = 0;
+  36   1        for(j=0;j<8;j++) //Vong lap 8 lan de thuc hien ghi tung bitt cua byte du lieu
+  37   1        {
+  38   2          DSPORT=0;     //Gan DSPORT bang 0
+  39   2          i++;          //Tang bien i, tao do tre
+  40   2          DSPORT=dat&0x01; //Ghi bitt thap nhat cua cua 'dat' vao 'DSPORT'
+  41   2          i=6;          //Gan i bang 6
+  42   2          while(i--); //Vong lap 6 lan, tao do tre
+  43   2          DSPORT=1; //Gan DSPORT bang 1
+  44   2          dat>>=1;  //Dich phai bien dat
+  45   2        }
+  46   1          EA = 1;
+  47   1      }
+  48          
+  49          
+  50          
+  51          unsigned char Ds18b20ReadByte()
+  52          {
+  53   1        unsigned char byte,bi;
+  54   1        unsigned int i,j;
+  55   1          EA = 0; 
+C51 COMPILER V9.60.0.0   TEMP                                                              12/13/2023 12:40:20 PAGE 2   
+
+  56   1        for(j=8;j>0;j--)
+  57   1        {
+  58   2          DSPORT=0;//Gan DSPORT bang 0
+  59   2          i++;     //Tang bien i, tao do tre
+  60   2          DSPORT=1;//Gan DSPORT bang 1
+  61   2          i++;
+  62   2          i++;
+  63   2          bi=DSPORT;   //Gan bien bi = DSPORT
+  64   2          byte=(byte>>1)|(bi<<7); //Dich phai gia tri cua byte va gan bitt thap nhat cua bi vao bitt cao nhat cua 
+             -byte          
+  65   2          i=4;    
+  66   2          while(i--);// Tao do tre truoc khi doc bitt tiep theo
+  67   2        }
+  68   1          EA = 1;       
+  69   1        return byte;// Tra ve gia tri cua bien byte
+  70   1      }
+  71          
+  72          
+  73          void  Ds18b20ChangTemp()
+  74          {
+  75   1        Ds18b20Init(); //Goi ham Ds18b20Init()
+  76   1        Delay1ms(1);  //Tao delay 1ms
+  77   1        Ds18b20WriteByte(0xcc);   //Gui lenh '0xCC' de chuyen cam bien DS18B20 sang che do lua chon ROM (Read-ROM)
+             - 
+  78   1        Ds18b20WriteByte(0x44);     //Gui lenh '0x44' de yei cau cam bien thuc hien do va cap nhat nhiet do
+  79   1        Delay1ms(10); 
+  80   1         
+  81   1      }
+  82          
+  83          
+  84          void  Ds18b20ReadTempCom()
+  85          { 
+  86   1      
+  87   1        Ds18b20Init();
+  88   1        Delay1ms(1);
+  89   1        Ds18b20WriteByte(0xcc);  //Gui lenh '0xCC' de chuyen cam bien DS18B20 sang che do lua chon ROM (Read-ROM)
+  90   1        Ds18b20WriteByte(0xbe);  //Gui lenh'0xBE' de yeu cau cam bien thuc hien do va truyen nhiet do
+  91   1      }
+  92          
+  93          
+  94          int Ds18b20ReadTemp()
+  95          {
+  96   1        int temp=0;
+  97   1        unsigned char tmh,tml;
+  98   1        Ds18b20ChangTemp();       //de chuan bi cam bien de thuc hien do va cap nhat nhiet do moi
+  99   1        Ds18b20ReadTempCom();     //de chuan bi cam bien de thuc hien qua trinh doc nhiet do
+ 100   1        tml=Ds18b20ReadByte();    //Doc byte thap cua gia tri nhiet do tu cam bien va luu vao bien 'tml'
+ 101   1        tmh=Ds18b20ReadByte();    //Doc byte cao cua gia tri nhiet do tu cam bien va luu vao bien 'tml'
+ 102   1        temp=tmh;
+ 103   1        temp<<=8;
+ 104   1        temp|=tml;// Ket hop byte thap va byte cao de tao thanh gia tri nhiet do hoan chinh
+ 105   1        return temp;// Tra ve gia tri nhiet do da doc duoc, duoc luu trong bien 'temp'
+ 106   1      }
+ 107          
+ 108          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    257    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+C51 COMPILER V9.60.0.0   TEMP                                                              12/13/2023 12:40:20 PAGE 3   
+
+   DATA SIZE        =   ----       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
